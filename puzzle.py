@@ -1,6 +1,6 @@
 import curses
 
-use_unicode = False
+use_unicode = True
 pzl_str = """
 .3.112.2..
 .3..3.1312
@@ -42,6 +42,7 @@ try:
     BUTTON_SCROLLUP   = 0x0001_0000
     BUTTON_SCROLLDOWN = 0x0020_0000
     BUTTON_DRAG       = 0x1000_0000
+    BUTTON13_PRESSED  = curses.BUTTON1_PRESSED | curses.BUTTON3_PRESSED
 
     nums = {".":-1, "0":0, "1":1, "2":2, "3":3, "4":4}
     attrs = {False: curses.color_pair(1),
@@ -57,10 +58,12 @@ try:
         for x, n, c in zip(xran, line, line2):
             screen.addstr(y, x, chars[n], attrs[c])
 
-    check = True
-    screen.addstr(0, 0, "+", attrs[check])
-
     count = 0
+    check1 = True
+    check2 = False
+    check = check1
+    screen.addstr(0, 0, "F", attrs[check1])
+    screen.addstr(0, 1, "B", attrs[check2])
 
     while True:
         key = screen.getch()
@@ -83,17 +86,19 @@ try:
 
             count += 1
             ymax, xmax = screen.getmaxyx()
-            screen.addstr(ymax-1, 0, f"{spins[count%len(spins)]}({x: 04d},{y: 04d}){button:09_X}")
+            screen.addstr(ymax-1, 0, f"{spins[count%len(spins)]}({x: 04d},{y: 04d}) {button:09_X}")
 
-            if button & BUTTON_SCROLLDOWN:
-                check = True
-                screen.addstr(0, 0, "+", attrs[check])
+            if button & curses.BUTTON2_PRESSED or button & BUTTON13_PRESSED and (x, y) == (0, 0):
+                check1, check2 = check2, check1
+                screen.addstr(0, 0, "F", attrs[check1])
+                screen.addstr(0, 1, "B", attrs[check2])
 
-            elif button & BUTTON_SCROLLUP:
-                check = False
-                screen.addstr(0, 0, "+", attrs[check])
+            elif button == 0 or button & BUTTON_DRAG or button & BUTTON13_PRESSED:
+                if button & curses.BUTTON1_PRESSED:
+                    check = check1
+                elif button & curses.BUTTON3_PRESSED:
+                    check = check2
 
-            elif button == 0 or button & BUTTON_DRAG or button & curses.BUTTON1_PRESSED:
                 ch = "　"
                 if y in yran and x in xran:
                     i, j = (x-2)//2, y-2
