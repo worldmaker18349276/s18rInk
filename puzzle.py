@@ -1,5 +1,23 @@
 import curses
 
+def binblock(b, n=None):
+    if n is None:
+        n = b.bit_length() / 8
+    c = ""
+    while n > 0:
+        h = b
+        h = ( (h & 0b0000_1111) << 4
+            | (h & 0b1111_0000) >> 4
+            )
+        h = ( (h & 0b1000_0111)
+            | (h & 0b0000_1000) << 3
+            | (h & 0b0111_0000) >> 1
+            )
+        c = chr(0x2800+h) + c
+        b >>= 8
+        n -= 1
+    return c
+
 try:
     screen = curses.initscr()
     screen.keypad(1)
@@ -71,7 +89,7 @@ try:
 
             count += 1
             ymax, xmax = screen.getmaxyx()
-            screen.addstr(ymax-1, 0, f"{spins[count%len(spins)]}{did},{x:0>3d},{y:0>3d},{z},{button:0>8X}")
+            screen.addstr(ymax-1, 0, f"{spins[count%len(spins)]}{did},{x:0>3d},{y:0>3d},{z},{binblock(button, 4)}")
 
             if button & BUTTON_SCROLLDOWN and (y == 0) <= (x == 0):
                 check = True
