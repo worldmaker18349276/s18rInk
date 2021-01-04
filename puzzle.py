@@ -109,6 +109,7 @@ try:
                     check1 = min(check1+1, len(cran)-1)
                 elif button & BUTTON_SCROLLUP:
                     check1 = max(check1-1, 0)
+                check = None
 
             elif button & curses.BUTTON2_PRESSED:
                 if y in yran and x in xran:
@@ -117,16 +118,19 @@ try:
                 elif y == 0 and x in cran:
                     check1 = cran.index(x)
                 else:
-                    check1 = 1
+                    check1 = 0
+                check = None
 
             elif button & BUTTON13_PRESSED and y == 0 and x in cran:
                 if button & curses.BUTTON1_PRESSED:
                     check1 = cran.index(x)
                 elif button & curses.BUTTON3_PRESSED:
                     check2 = cran.index(x)
+                check = None
 
             elif button & BUTTON13_PRESSED and (x, y) == (0, 0):
                 check1, check2 = check2, check1
+                check = None
 
             elif button & BUTTON13_PRESSED and button & curses.BUTTON_CTRL and y in yran and x in xran:
                 if button & curses.BUTTON1_PRESSED:
@@ -151,7 +155,8 @@ try:
                     sym = symbols[puzzle[j][i]]
                     screen.addstr(y, x, sym, attrs[check])
 
-            elif (button & BUTTON13_PRESSED or button & BUTTON_DRAG or button == 0) and y in yran and x in xran:
+            elif (button & BUTTON13_PRESSED and y in yran and x in xran) or\
+                 (button & BUTTON_DRAG or button == 0) and check is not None:
                 if button & curses.BUTTON1_PRESSED:
                     check = check1
                 elif button & curses.BUTTON3_PRESSED:
