@@ -16,10 +16,10 @@ pzl_str = """
 
 
 if use_unicode:
-    chars = ["０", "１", "２", "３", "４", "　"]
+    symbols = ["０", "１", "２", "３", "４", "　"]
     spins = ["◴ ", "◵ ", "◶ ", "◷ "]
 else:
-    chars = [" 0", " 1", " 2", " 3", " 4", "  "]
+    symbols = [" 0", " 1", " 2", " 3", " 4", "  "]
     spins = ["|", "\\", "-", "/"]
 
 
@@ -62,11 +62,12 @@ try:
     chk = [[0 for n in line] for line in pzl]
     chk_ = [[c for c in line] for line in chk]
 
-    yran = range(2, len(pzl)+2, 1)
-    xran = range(2, len(pzl[0])*2+2, 2)
+    width, height = len(pzl[0]), len(pzl)
+    yran = range(2, height+2, 1)
+    xran = range(2, width*2+2, 2)
     for y, line, line2 in zip(yran, pzl, chk):
         for x, n, c in zip(xran, line, line2):
-            screen.addstr(y, x, chars[n], attrs[c])
+            screen.addstr(y, x, symbols[n], attrs[c])
 
     count = 0
     check1 = 1
@@ -92,7 +93,7 @@ try:
 
             for y, line, line2 in zip(yran, pzl, chk):
                 for x, n, c in zip(xran, line, line2):
-                    screen.addstr(y, x, chars[n], attrs[c])
+                    screen.addstr(y, x, symbols[n], attrs[c])
 
         elif key == curses.KEY_MOUSE:
             did, x, y, z, button = curses.getmouse()
@@ -125,20 +126,39 @@ try:
                 screen.addstr(0, 0, "F", attrs[check1])
                 screen.addstr(0, 1, "B", attrs[check2])
 
-            elif button & BUTTON13_PRESSED or (button == 0 or button & BUTTON_DRAG) and y != 0:
+            elif button & BUTTON13_PRESSED and button & curses.BUTTON_CTRL and y in yran and x in xran:
                 if button & curses.BUTTON1_PRESSED:
                     check = check1
                 elif button & curses.BUTTON3_PRESSED:
                     check = check2
 
-                ch = "　"
-                if y in yran and x in xran:
-                    i, j = (x-2)//2, y-2
-                    chk[j][i] = check
-                    n = pzl[j][i]
-                    ch = chars[n]
+                i, j = xran.index(x), yran.index(y)
+                orig = chk[j][i]
 
-                screen.addstr(y, x, ch, attrs[check])
+                fillin = [(i, j)]
+                for i, j in fillin:
+                    for i_, j_ in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]:
+                        if (i_, j_) in fillin:
+                            continue
+                        if i_ in range(width) and j_ in range(height) and chk[j_][i_] == orig:
+                            fillin.append((i_, j_))
+
+                for i, j in fillin:
+                    x, y = xran[i], yran[j]
+                    chk[j][i] = check
+                    sym = symbols[pzl[j][i]]
+                    screen.addstr(y, x, sym, attrs[check])
+
+            elif (button & BUTTON13_PRESSED or button & BUTTON_DRAG or button == 0) and y in yran and x in xran:
+                if button & curses.BUTTON1_PRESSED:
+                    check = check1
+                elif button & curses.BUTTON3_PRESSED:
+                    check = check2
+
+                i, j = xran.index(x), yran.index(y)
+                chk[j][i] = check
+                sym = symbols[pzl[j][i]]
+                screen.addstr(y, x, sym, attrs[check])
 
 finally:
     print("\033[?1002l\n")
