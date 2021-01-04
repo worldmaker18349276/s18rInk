@@ -1,7 +1,7 @@
 import curses
 
 use_unicode = True
-pzl_str = """
+puzzle_str = """
 .3.112.2..
 .3..3.1312
 22.1......
@@ -58,14 +58,15 @@ try:
              curses.color_pair(4),
              curses.color_pair(4) | curses.A_REVERSE,
              ]
-    pzl = [[nums[ch] for ch in line] for line in pzl_str.strip().split()]
-    chk = [[0 for n in line] for line in pzl]
-    chk_ = [[c for c in line] for line in chk]
 
-    width, height = len(pzl[0]), len(pzl)
+    puzzle = [[nums[ch] for ch in line] for line in puzzle_str.strip().split()]
+    checks = [[0 for n in line] for line in puzzle]
+    checks_ = [[c for c in line] for line in checks]
+
+    width, height = len(puzzle[0]), len(puzzle)
     yran = range(2, height+2, 1)
     xran = range(2, width*2+2, 2)
-    for y, line, line2 in zip(yran, pzl, chk):
+    for y, line, line2 in zip(yran, puzzle, checks):
         for x, n, c in zip(xran, line, line2):
             screen.addstr(y, x, symbols[n], attrs[c])
 
@@ -86,12 +87,12 @@ try:
             break
 
         elif key == ord("x"):
-            chk_ = [[c for c in line] for line in chk]
+            checks_ = [[c for c in line] for line in checks]
 
         elif key == ord("z"):
-            chk = [[c for c in line] for line in chk_]
+            checks = [[c for c in line] for line in checks_]
 
-            for y, line, line2 in zip(yran, pzl, chk):
+            for y, line, line2 in zip(yran, puzzle, checks):
                 for x, n, c in zip(xran, line, line2):
                     screen.addstr(y, x, symbols[n], attrs[c])
 
@@ -109,22 +110,23 @@ try:
                 elif button & BUTTON_SCROLLUP:
                     check1 = max(check1-1, 0)
 
-                screen.addstr(0, 0, "F", attrs[check1])
-                screen.addstr(0, 1, "B", attrs[check2])
+            elif button & curses.BUTTON2_PRESSED:
+                if y in yran and x in xran:
+                    i, j = xran.index(x), yran.index(y)
+                    check1 = checks[j][i]
+                elif y == 0 and x in cran:
+                    check1 = cran.index(x)
+                else:
+                    check1 = 1
 
-            elif y == 0 and x in cran:
+            elif button & BUTTON13_PRESSED and y == 0 and x in cran:
                 if button & curses.BUTTON1_PRESSED:
                     check1 = cran.index(x)
                 elif button & curses.BUTTON3_PRESSED:
                     check2 = cran.index(x)
 
-                screen.addstr(0, 0, "F", attrs[check1])
-                screen.addstr(0, 1, "B", attrs[check2])
-
-            elif button & curses.BUTTON2_PRESSED or button & BUTTON13_PRESSED and (x, y) == (0, 0):
+            elif button & BUTTON13_PRESSED and (x, y) == (0, 0):
                 check1, check2 = check2, check1
-                screen.addstr(0, 0, "F", attrs[check1])
-                screen.addstr(0, 1, "B", attrs[check2])
 
             elif button & BUTTON13_PRESSED and button & curses.BUTTON_CTRL and y in yran and x in xran:
                 if button & curses.BUTTON1_PRESSED:
@@ -133,20 +135,20 @@ try:
                     check = check2
 
                 i, j = xran.index(x), yran.index(y)
-                orig = chk[j][i]
+                orig = checks[j][i]
 
                 fillin = [(i, j)]
                 for i, j in fillin:
                     for i_, j_ in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]:
                         if (i_, j_) in fillin:
                             continue
-                        if i_ in range(width) and j_ in range(height) and chk[j_][i_] == orig:
+                        if i_ in range(width) and j_ in range(height) and checks[j_][i_] == orig:
                             fillin.append((i_, j_))
 
                 for i, j in fillin:
                     x, y = xran[i], yran[j]
-                    chk[j][i] = check
-                    sym = symbols[pzl[j][i]]
+                    checks[j][i] = check
+                    sym = symbols[puzzle[j][i]]
                     screen.addstr(y, x, sym, attrs[check])
 
             elif (button & BUTTON13_PRESSED or button & BUTTON_DRAG or button == 0) and y in yran and x in xran:
@@ -156,9 +158,12 @@ try:
                     check = check2
 
                 i, j = xran.index(x), yran.index(y)
-                chk[j][i] = check
-                sym = symbols[pzl[j][i]]
+                checks[j][i] = check
+                sym = symbols[puzzle[j][i]]
                 screen.addstr(y, x, sym, attrs[check])
+
+            screen.addstr(0, 0, "F", attrs[check1])
+            screen.addstr(0, 1, "B", attrs[check2])
 
 finally:
     print("\033[?1002l\n")
