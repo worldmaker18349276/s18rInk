@@ -37,19 +37,29 @@ try:
     curses.start_color()
     curses.use_default_colors()
     curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLUE)
+    curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_CYAN)
+    curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_MAGENTA)
     screen.bkgd(" ", curses.color_pair(1))
 
     BUTTON_SCROLLUP   = 0x0001_0000
     BUTTON_SCROLLDOWN = 0x0020_0000
+    BUTTON_SCROLL     = BUTTON_SCROLLUP | BUTTON_SCROLLDOWN
     BUTTON_DRAG       = 0x1000_0000
     BUTTON13_PRESSED  = curses.BUTTON1_PRESSED | curses.BUTTON3_PRESSED
 
     nums = {".":-1, "0":0, "1":1, "2":2, "3":3, "4":4}
-    attrs = {False: curses.color_pair(1),
-             True : curses.color_pair(1) | curses.A_REVERSE,
-             }
+    attrs = [curses.color_pair(1),
+             curses.color_pair(1) | curses.A_REVERSE,
+             curses.color_pair(2),
+             curses.color_pair(2) | curses.A_REVERSE,
+             curses.color_pair(3),
+             curses.color_pair(3) | curses.A_REVERSE,
+             curses.color_pair(4),
+             curses.color_pair(4) | curses.A_REVERSE,
+             ]
     pzl = [[nums[ch] for ch in line] for line in pzl_str.strip().split()]
-    chk = [[False for n in line] for line in pzl]
+    chk = [[0 for n in line] for line in pzl]
     chk_ = [[c for c in line] for line in chk]
 
     yran = range(2, len(pzl)+2, 1)
@@ -59,11 +69,15 @@ try:
             screen.addstr(y, x, chars[n], attrs[c])
 
     count = 0
-    check1 = True
-    check2 = False
+    check1 = 1
+    check2 = 0
     check = check1
     screen.addstr(0, 0, "F", attrs[check1])
     screen.addstr(0, 1, "B", attrs[check2])
+
+    cran = range(4, 20, 2)
+    for x, checki in zip(cran, range(8)):
+        screen.addstr(0, x, f"{checki: 2d}", attrs[checki])
 
     while True:
         key = screen.getch()
@@ -88,12 +102,30 @@ try:
             ymax, xmax = screen.getmaxyx()
             screen.addstr(ymax-1, 0, f"{spins[count%len(spins)]}({x: 04d},{y: 04d}) {button:09_X}")
 
-            if button & curses.BUTTON2_PRESSED or button & BUTTON13_PRESSED and (x, y) == (0, 0):
+            if button & BUTTON_SCROLL:
+                if button & BUTTON_SCROLLDOWN:
+                    check1 = min(check1+1, len(cran)-1)
+                elif button & BUTTON_SCROLLUP:
+                    check1 = max(check1-1, 0)
+
+                screen.addstr(0, 0, "F", attrs[check1])
+                screen.addstr(0, 1, "B", attrs[check2])
+
+            elif y == 0 and x in cran:
+                if button & curses.BUTTON1_PRESSED:
+                    check1 = cran.index(x)
+                elif button & curses.BUTTON3_PRESSED:
+                    check2 = cran.index(x)
+
+                screen.addstr(0, 0, "F", attrs[check1])
+                screen.addstr(0, 1, "B", attrs[check2])
+
+            elif button & curses.BUTTON2_PRESSED or button & BUTTON13_PRESSED and (x, y) == (0, 0):
                 check1, check2 = check2, check1
                 screen.addstr(0, 0, "F", attrs[check1])
                 screen.addstr(0, 1, "B", attrs[check2])
 
-            elif button == 0 or button & BUTTON_DRAG or button & BUTTON13_PRESSED:
+            elif button & BUTTON13_PRESSED or (button == 0 or button & BUTTON_DRAG) and y != 0:
                 if button & curses.BUTTON1_PRESSED:
                     check = check1
                 elif button & curses.BUTTON3_PRESSED:
