@@ -1,30 +1,34 @@
 import curses
 
-def binblock(b, n=None):
+use_unicode = False
+pzl_str = """
+.3.112.2..
+.3..3.1312
+22.1......
+.3..3..2.2
+2.....2.21
+31.3.....3
+2.2..3..2.
+......1.32
+2220.3..3.
+..3.122.2.
+"""
 
-    if n is None:
-        n = b.bit_length() / 8
-    c = ""
-    while n > 0:
-        h = b
-        h = ( (h & 0b0000_1111) << 4
-            | (h & 0b1111_0000) >> 4
-            )
-        h = ( (h & 0b1000_0111)
-            | (h & 0b0000_1000) << 3
-            | (h & 0b0111_0000) >> 1
-            )
-        c = chr(0x2800+h) + c
-        b >>= 8
-        n -= 1
-    return c
+
+if use_unicode:
+    chars = ["０", "１", "２", "３", "４", "　"]
+    spins = ["◴ ", "◵ ", "◶ ", "◷ "]
+else:
+    chars = [" 0", " 1", " 2", " 3", " 4", "  "]
+    spins = ["|", "\\", "-", "/"]
+
 
 try:
     screen = curses.initscr()
     screen.keypad(1)
     curses.curs_set(0)
     curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
-    curses.mouseinterval(10)
+    curses.mouseinterval(0)
     print("\033[?1002h\n")
     curses.flushinp()
     curses.noecho()
@@ -40,23 +44,10 @@ try:
     BUTTON_DRAG       = 0x1000_0000
 
     nums = {".":-1, "0":0, "1":1, "2":2, "3":3, "4":4}
-    chars = ["０", "１", "２", "３", "４", "　"]
     attrs = {False: curses.color_pair(1),
              True : curses.color_pair(1) | curses.A_REVERSE,
              }
-    pzl_str = """
-.3.112.2..
-.3..3.1312
-22.1......
-.3..3..2.2
-2.....2.21
-31.3.....3
-2.2..3..2.
-......1.32
-2220.3..3.
-..3.122.2.
-"""
-    pzl = [[nums[ch] for ch in line] for line in pzl_str.strip().split("\n")]
+    pzl = [[nums[ch] for ch in line] for line in pzl_str.strip().split()]
     chk = [[False for n in line] for line in pzl]
     chk_ = [[c for c in line] for line in chk]
 
@@ -67,10 +58,9 @@ try:
             screen.addstr(y, x, chars[n], attrs[c])
 
     check = True
-    screen.addstr(0, 0, "Ｏ", attrs[check])
+    screen.addstr(0, 0, "+", attrs[check])
 
     count = 0
-    spins = ["◴ ", "◵ ", "◶ ", "◷ "]
 
     while True:
         key = screen.getch()
@@ -93,17 +83,17 @@ try:
 
             count += 1
             ymax, xmax = screen.getmaxyx()
-            screen.addstr(ymax-1, 0, f"{spins[count%len(spins)]}({x: 04d},{y: 04d}){binblock(0xFFFF_FFFF & ~button, 4)}")
+            screen.addstr(ymax-1, 0, f"{spins[count%len(spins)]}({x: 04d},{y: 04d}){button:09_X}")
 
-            if button & BUTTON_SCROLLDOWN and (y == 0) <= (x == 0):
+            if button & BUTTON_SCROLLDOWN:
                 check = True
-                screen.addstr(0, 0, "Ｏ", attrs[check])
+                screen.addstr(0, 0, "+", attrs[check])
 
-            elif button & BUTTON_SCROLLUP and (y == 0) <= (x == 0):
+            elif button & BUTTON_SCROLLUP:
                 check = False
-                screen.addstr(0, 0, "Ｏ", attrs[check])
+                screen.addstr(0, 0, "+", attrs[check])
 
-            elif button & BUTTON_DRAG:
+            elif button == 0 or button & BUTTON_DRAG or button & curses.BUTTON1_PRESSED:
                 ch = "　"
                 if y in yran and x in xran:
                     i, j = (x-2)//2, y-2
