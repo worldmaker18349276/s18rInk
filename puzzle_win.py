@@ -84,15 +84,14 @@ try:
                 screen.addstr(0, 0, "[]", attrs[check])
 
             elif button == 0 or button & curses.BUTTON1_PRESSED:
-                value = check
                 ch = "  "
                 if y in yran and x in xran:
                     i, j = (x-2)//2, y-2
-                    chk[j][i] = value
+                    chk[j][i] = check
                     n = pzl[j][i]
                     ch = chars[n]
 
-                screen.addstr(y, x, ch, attrs[value])
+                screen.addstr(y, x, ch, attrs[check])
 
 finally:
     # print("\033[?1003l\n")
