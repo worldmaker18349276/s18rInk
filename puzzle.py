@@ -103,6 +103,7 @@ try:
             count += 1
             ymax, xmax = screen.getmaxyx()
             screen.addstr(ymax-1, 0, f"{spins[count%len(spins)]}({x: 04d},{y: 04d}) {button:09_X}")
+            updated = []
 
             if button & BUTTON_SCROLL:
                 if button & BUTTON_SCROLLDOWN:
@@ -141,22 +142,16 @@ try:
                 i, j = xran.index(x), yran.index(y)
                 orig = checks[j][i]
 
-                fillin = [(i, j)]
-                for i, j in fillin:
+                updated.append((i, j))
+                for i, j in updated:
+                    checks[j][i] = check
                     for i_, j_ in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]:
-                        if (i_, j_) in fillin:
+                        if (i_, j_) in updated:
                             continue
                         if i_ in range(width) and j_ in range(height) and checks[j_][i_] == orig:
-                            fillin.append((i_, j_))
+                            updated.append((i_, j_))
 
-                for i, j in fillin:
-                    x, y = xran[i], yran[j]
-                    checks[j][i] = check
-                    sym = symbols[puzzle[j][i]]
-                    screen.addstr(y, x, sym, attrs[check])
-
-            elif (button & BUTTON13_PRESSED and y in yran and x in xran) or\
-                 (button & BUTTON_DRAG or button == 0) and check is not None:
+            elif button & BUTTON13_PRESSED and y in yran and x in xran:
                 if button & curses.BUTTON1_PRESSED:
                     check = check1
                 elif button & curses.BUTTON3_PRESSED:
@@ -164,11 +159,21 @@ try:
 
                 i, j = xran.index(x), yran.index(y)
                 checks[j][i] = check
-                sym = symbols[puzzle[j][i]]
-                screen.addstr(y, x, sym, attrs[check])
+                updated.append((i, j))
+
+            elif (button & BUTTON_DRAG or button == 0) and y in yran and x in xran and check is not None:
+                i, j = xran.index(x), yran.index(y)
+                checks[j][i] = check
+                updated.append((i, j))
 
             screen.addstr(0, 0, "F", attrs[check1])
             screen.addstr(0, 1, "B", attrs[check2])
+            
+            for i, j in updated:
+                x, y = xran[i], yran[j]
+                c = checks[j][i]
+                sym = symbols[puzzle[j][i]]
+                screen.addstr(y, x, sym, attrs[c])
 
 finally:
     print("\033[?1002l\n")
